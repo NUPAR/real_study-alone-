@@ -11,3 +11,76 @@
       align-items: center;
   </style>
 </head>
+<body>
+
+  <button id="fabricButton">Popcorn Button</button>
+  <button id="bloodButton">Blood Button</button>
+
+  <script>
+    // 팝콘 버튼 클릭 시 텍스트가 팝콘처럼 튀어오르는 애니메이션 효과
+    const button = document.getElementById('fabricButton');
+
+    button.addEventListener('click', () => {
+      // 새로운 텍스트 생성
+      const textPop = document.createElement('span');
+      textPop.classList.add('textPop');
+      textPop.textContent = 'Popcorn!';
+
+      // 텍스트 위치를 버튼의 중앙으로 이동
+      const buttonRect = button.getBoundingClientRect();
+      textPop.style.left = `${buttonRect.left + buttonRect.width / 2 - 30}px`; // 텍스트의 가로 크기를 고려하여 조정
+      textPop.style.top = `${buttonRect.top - textPop.offsetHeight}px`;
+
+      // 텍스트가 보이도록 설정하고 애니메이션 시작
+      document.body.appendChild(textPop); // 페이지에 텍스트 추가
+      textPop.style.opacity = '1';
+      textPop.style.animation = 'popEffect 1.5s forwards';
+
+      // 애니메이션 종료 후 텍스트 숨김 처리
+      setTimeout(() => {
+        textPop.style.opacity = '0';
+      }, 1500);
+
+      // 텍스트 요소를 DOM에서 제거
+      setTimeout(() => {
+        textPop.remove();
+      }, 2000);
+    });
+
+    // 블러드 버튼 클릭 시 피 튀기는 효과 추가
+    const bloodButton = document.getElementById('bloodButton');
+
+    bloodButton.addEventListener('click', () => {
+      for (let i = 0; i < 8; i++) {
+        // 피 튀기기 효과 생성
+        const blood = document.createElement('div');
+        blood.classList.add('bloodEffect');
+        
+        // 랜덤한 크기와 위치 설정
+        const size = Math.random() * 20 + 10; // 10px ~ 30px 크기의 피 방울
+        blood.style.width = `${size}px`;
+        blood.style.height = `${size}px`;
+        const bloodButtonRect = bloodButton.getBoundingClientRect();
+        blood.style.left = `${bloodButtonRect.left + bloodButtonRect.width / 2}px`;
+        blood.style.top = `${bloodButtonRect.top + bloodButtonRect.height / 2}px`;
+
+        // 랜덤한 방향 설정
+        blood.style.setProperty('--dirX', Math.random());
+        blood.style.setProperty('--dirY', Math.random());
+
+        // 페이지에 피 추가
+        document.body.appendChild(blood);
+
+        // 애니메이션 적용
+        blood.style.animation = 'bloodSplash 0.5s forwards';
+
+        // 0.5초 뒤에 피 요소 제거
+        setTimeout(() => {
+          blood.remove();
+        }, 500);
+      }
+    });
+  </script>
+
+</body>
+</html>
