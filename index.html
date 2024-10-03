@@ -3,84 +3,244 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>버튼 이모션</title>
+  <title>Endurance Forest</title>
   <style>
-    body {
-      dispaly: flex;
-      justify-content: center;
-      align-items: center;
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #gameCanvas {
+      display: block;
+      background-color: #87CEEB; /* Sky blue background */
+    }
+
+    #instructions {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 20px;
+      text-align: center;
+      border-radius: 10px;
+      display: none;
+    }
+
+    #closeInstructions {
+      cursor: pointer;
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+
+    #saveGame {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 10px;
+      background-color: green;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-  <button id="fabricButton">Popcorn Button</button>
-  <button id="bloodButton">Blood Button</button>
+<canvas id="gameCanvas"></canvas>
+<div id="instructions">
+  <h2>How to Play</h2>
+  <p>Move: Left/Right arrows or A/D</p>
+  <p>Jump: Spacebar</p>
+  <button id="closeInstructions">Close</button>
+</div>
+<button id="saveGame">Save</button>
 
-  <script>
-    // 팝콘 버튼 클릭 시 텍스트가 팝콘처럼 튀어오르는 애니메이션 효과
-    const button = document.getElementById('fabricButton');
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = 800;
+  canvas.height = 600;
 
-    button.addEventListener('click', () => {
-      // 새로운 텍스트 생성
-      const textPop = document.createElement('span');
-      textPop.classList.add('textPop');
-      textPop.textContent = 'Popcorn!';
+  // 게임 설정
+  const gravity = 0.5;
+  const playerSpeed = 5;
+  let isJumping = false;
+  let isGameOver = false;
 
-      // 텍스트 위치를 버튼의 중앙으로 이동
-      const buttonRect = button.getBoundingClientRect();
-      textPop.style.left = `${buttonRect.left + buttonRect.width / 2 - 30}px`; // 텍스트의 가로 크기를 고려하여 조정
-      textPop.style.top = `${buttonRect.top - textPop.offsetHeight}px`;
+  // 플레이어 설정
+  let player = {
+    x: 50,
+    y: 500,
+    width: 50,
+    height: 50,
+    dx: 0,
+    dy: 0,
+    jumpPower: -10,
+    color: 'red'
+  };
 
-      // 텍스트가 보이도록 설정하고 애니메이션 시작
-      document.body.appendChild(textPop); // 페이지에 텍스트 추가
-      textPop.style.opacity = '1';
-      textPop.style.animation = 'popEffect 1.5s forwards';
+  // 저장된 위치가 있다면 로드
+  const savedPlayerData = localStorage.getItem('player');
+  if (savedPlayerData) {
+    player = JSON.parse(savedPlayerData);
+  }
 
-      // 애니메이션 종료 후 텍스트 숨김 처리
-      setTimeout(() => {
-        textPop.style.opacity = '0';
-      }, 1500);
+  // 플랫폼 설정
+  const platforms = [
+    { x: 0, y: 550, width: 200, height: 20 },
+    { x: 250, y: 450, width: 150, height: 20 },
+    { x: 450, y: 350, width: 200, height: 20 },
+    { x: 700, y: 250, width: 100, height: 20 },
+  ];
 
-      // 텍스트 요소를 DOM에서 제거
-      setTimeout(() => {
-        textPop.remove();
-      }, 2000);
-    });
+  // 스파이크 설정
+  const spikes = [
+    { x: 300, y: 530, width: 30, height: 20 },
+    { x: 600, y: 530, width: 30, height: 20 },
+  ];
 
-    // 블러드 버튼 클릭 시 피 튀기는 효과 추가
-    const bloodButton = document.getElementById('bloodButton');
+  // 키보드 입력 처리
+  const keys = {};
+  document.addEventListener('keydown', (event) => {
+    keys[event.code] = true;
+  });
 
-    bloodButton.addEventListener('click', () => {
-      for (let i = 0; i < 8; i++) {
-        // 피 튀기기 효과 생성
-        const blood = document.createElement('div');
-        blood.classList.add('bloodEffect');
-        
-        // 랜덤한 크기와 위치 설정
-        const size = Math.random() * 20 + 10; // 10px ~ 30px 크기의 피 방울
-        blood.style.width = `${size}px`;
-        blood.style.height = `${size}px`;
-        const bloodButtonRect = bloodButton.getBoundingClientRect();
-        blood.style.left = `${bloodButtonRect.left + bloodButtonRect.width / 2}px`;
-        blood.style.top = `${bloodButtonRect.top + bloodButtonRect.height / 2}px`;
+  document.addEventListener('keyup', (event) => {
+    keys[event.code] = false;
+  });
 
-        // 랜덤한 방향 설정
-        blood.style.setProperty('--dirX', Math.random());
-        blood.style.setProperty('--dirY', Math.random());
+  // 스페이스바 점프
+  function jump() {
+    if (!isJumping) {
+      player.dy = player.jumpPower;
+      isJumping = true;
+    }
+  }
 
-        // 페이지에 피 추가
-        document.body.appendChild(blood);
+  // 충돌 감지
+  function detectCollision(rect1, rect2) {
+    return (
+      rect1.x < rect2.x + rect2.width &&
+      rect1.x + rect1.width > rect2.x &&
+      rect1.y < rect2.y + rect2.height &&
+      rect1.y + rect1.height > rect2.y
+    );
+  }
 
-        // 애니메이션 적용
-        blood.style.animation = 'bloodSplash 0.5s forwards';
+  // 게임 오버 처리
+  function gameOver() {
+    isGameOver = true;
+    alert('Game Over! Try again.');
+    document.location.reload();
+  }
 
-        // 0.5초 뒤에 피 요소 제거
-        setTimeout(() => {
-          blood.remove();
-        }, 500);
+  // 게임 로직
+  function update() {
+    if (keys['ArrowRight'] || keys['KeyD']) {
+      player.dx = playerSpeed;
+    } else if (keys['ArrowLeft'] || keys['KeyA']) {
+      player.dx = -playerSpeed;
+    } else {
+      player.dx = 0;
+    }
+
+    if ((keys['Space']) && !isJumping) {
+      jump();
+    }
+
+    // 중력 적용
+    player.dy += gravity;
+
+    // 플레이어 위치 업데이트
+    player.x += player.dx;
+    player.y += player.dy;
+
+    // 바닥에 닿으면 점프 해제
+    if (player.y + player.height >= canvas.height) {
+      player.y = canvas.height - player.height;
+      player.dy = 0;
+      isJumping = false;
+    }
+
+    // 플랫폼 충돌 체크
+    platforms.forEach(platform => {
+      if (detectCollision(player, platform) && player.dy >= 0) {
+        player.dy = 0;
+        player.y = platform.y - player.height;
+        isJumping = false;
       }
     });
-  </script>
+
+    // 스파이크 충돌 체크
+    spikes.forEach(spike => {
+      if (detectCollision(player, spike)) {
+        gameOver();
+      }
+    });
+  }
+
+  // 그리기
+  function drawPlayer() {
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+  }
+
+  function drawPlatforms() {
+    platforms.forEach(platform => {
+      ctx.fillStyle = 'green';
+      ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+    });
+  }
+
+  function drawSpikes() {
+    spikes.forEach(spike => {
+      ctx.fillStyle = 'black';
+      ctx.fillRect(spike.x, spike.y, spike.width, spike.height);
+    });
+  }
+
+  // 게임 프레임
+  function gameLoop() {
+    if (!isGameOver) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      update();
+      drawPlayer();
+      drawPlatforms();
+      drawSpikes();
+      requestAnimationFrame(gameLoop);
+    }
+  }
+
+  // 조작법 안내 창
+  const instructions = document.getElementById('instructions');
+  const closeInstructions = document.getElementById('closeInstructions');
+  window.onload = function () {
+    instructions.style.display = 'block';
+  };
+
+  closeInstructions.addEventListener('click', () => {
+    instructions.style.display = 'none';
+  });
+
+  // 저장 기능
+  const saveGameButton = document.getElementById('saveGame');
+  saveGameButton.addEventListener('click', () => {
+    localStorage.setItem('player', JSON.stringify(player));
+    alert('Game Saved!');
+  });
+
+  // 게임 시작
+  gameLoop();
+</script>
 
 </body>
 </html>
+
